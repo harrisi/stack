@@ -70,3 +70,20 @@
       (else
        (set! stack (push elem stack)))))
   stack)
+
+;; REPL
+(define (start ns)
+  (let/ec break
+    (let loop ()
+      (write 'stacket>)
+      (define input (read))
+      (when (eq? input 'q) (break))
+      (println (run (eval input ns)))
+      (loop)))
+  (println "exiting"))
+
+;; Entry point when run as `racket stack.rkt`
+(module+ main
+  (define-namespace-anchor anc)
+  (define ns (namespace-anchor->namespace anc))
+  (start ns))
