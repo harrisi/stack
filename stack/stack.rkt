@@ -1,9 +1,16 @@
 #lang racket
 
+<<<<<<< HEAD
+=======
+;; (require racket/cmdline)
+
+
+>>>>>>> 4b865a238c41cc6ef875a04049413f49033b5559
 (define (push elem [stack null])
   (cons elem stack))
 
 (define (pop stack)
+<<<<<<< HEAD
   (unless (empty? stack)
     (rest stack)))
 
@@ -47,3 +54,16 @@
       (else
        (set! stack (push iprog stack)))))
   (println stack))
+=======
+  (if (null? stack)
+      '()
+      (rest stack)))
+
+(define (peek stack)
+  (if (null? stack)
+      '()
+      (first stack)))
+
+(define (run prog)
+  (eval (foldl cons null prog)))
+>>>>>>> 4b865a238c41cc6ef875a04049413f49033b5559
