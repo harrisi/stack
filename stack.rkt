@@ -65,20 +65,30 @@
        (let ([num1 (peek stack)]
              [num2 (peek (pop stack))])
          (set! stack (push (/ num1 num2) (pop (pop stack))))))
-      
+
+      ([number? elem]
+       (set! stack (push elem stack)))
       ;; Token is literal
       (else
-       (set! stack (push elem stack)))))
+       (error (format "ERROR: Cannot read term: ~a." elem)))))
   stack)
 
 ;; REPL
 (define (start ns)
+  (define old false)
   (let/ec break
     (let loop ()
       (display "stacket> ")
       (define input (read))
-      (when (eq? input 'q) (break))
-      (displayln (run (eval input ns)))
+      (cond
+        ([eq? input 'q]
+         (break))
+        ([eq? input 'o]
+         (set! old (not old))
+         (loop)))
+      (if (not old)
+          (println (run (eval input ns)))
+          (println (run_old input)))
       (loop)))
   (displayln "exiting"))
 
