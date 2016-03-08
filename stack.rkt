@@ -75,12 +75,12 @@
 (define (start ns)
   (let/ec break
     (let loop ()
-      (write 'stacket>)
+      (display "stacket> ")
       (define input (read))
       (when (eq? input 'q) (break))
-      (println (run (eval input ns)))
+      (displayln (run (eval input ns)))
       (loop)))
-  (println "exiting"))
+  (displayln "exiting"))
 
 ;; Entry point when run as `racket stack.rkt`
 (module+ main
