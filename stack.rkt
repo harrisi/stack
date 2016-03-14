@@ -1,4 +1,5 @@
 #lang racket
+;;(require data/collection)
 
 ;; Push elem onto stack (default value null).
 (define (push elem [stack null])
@@ -38,8 +39,42 @@
 ;; arbitrary code execution, but it makes adding functionality more work.
 ;; I might continue to update this with "internal" functions as a "safe" option
 ;; to go alongside the above "wild west" implementation.
-(define (run_old prog)
+(define (run_old prog ns)
   (define stack null)
+  (define func-table
+    (make-immutable-hash '([~ . (lambda (n) (- n))]
+                           [out . (lambda (o) (displayln o))])))
+  (define arity-table
+    (make-immutable-hash '([+ . 2]
+                           [* . 2]
+                           [- . 2] ;; binary subtraction
+                           [/ . 2]
+                           [~ . 1] ;; unary negation
+                           [out . 1]))) ;; print top elem of stack
+  (define (do-func f args)
+    (cond
+      ([hash-has-key? func-table f]
+        (apply (eval (hash-ref func-table f) ns) args))
+      ([primitive? (eval f ns)]
+          (apply (eval f ns) args))
+      (else
+       (error
+        (format "ERROR (do-func): function not primitve or language: ~a" f)))))
+    
+  (for ([elem prog])
+    (cond
+      ([or (hash-has-key? arity-table elem) (hash-has-key? func-table elem)]
+       (let* ([arity (hash-ref arity-table elem)]
+              [args (take stack arity)])
+         (set! stack (push (do-func elem args)))
+         (drop prog (add1 arity))))
+      ([number? elem]
+       (set! stack (push elem stack)))
+      (else
+       (error (format "ERROR: Cannot read term: ~a" elem)))))
+  stack)
+
+#;(define foo
   (for ([elem prog])
     (cond
       ;;  Token = +
@@ -81,14 +116,14 @@
       (display "stacket> ")
       (define input (read))
       (cond
-        ([eq? input 'q]
+        ([eq? input 'q] ;; Quit REPL
          (break))
-        ([eq? input 'o]
+        ([eq? input 'o] ;; Toggle "old" vs "new" mode
          (set! old (not old))
          (loop)))
       (if (not old)
           (println (run (eval input ns)))
-          (println (run_old input)))
+          (println (run_old input ns)))
       (loop)))
   (displayln "exiting"))
 
