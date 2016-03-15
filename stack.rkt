@@ -43,14 +43,16 @@
   (define stack null)
   (define func-table
     (make-immutable-hash '([~ . (lambda (n) (- n))]
-                           [out . (lambda (o) (displayln o))])))
+                           [out . (lambda (o) (displayln o))]
+                           [++ . string-append])))
   (define arity-table
     (make-immutable-hash '([+ . 2]
                            [* . 2]
                            [- . 2] ;; binary subtraction
                            [/ . 2]
                            [~ . 1] ;; unary negation
-                           [out . 1]))) ;; print top elem of stack
+                           [out . 1] ;; print top elem of stack
+                           [++ . 2]))) ;; string concatentation
   (define (do-func f args)
     (cond
       ([hash-has-key? func-table f]
@@ -68,7 +70,7 @@
               [args (take stack arity)])
          (set! stack (push (do-func elem args)))
          (drop prog (add1 arity))))
-      ([number? elem]
+      ([or (number? elem) (string? elem)]
        (set! stack (push elem stack)))
       (else
        (error (format "ERROR: Cannot read term: ~a" elem)))))
