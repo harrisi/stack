@@ -1,5 +1,4 @@
 #lang racket
-;;(require data/collection)
 
 ;; Push elem onto stack (default value null).
 (define (push elem [stack null])
@@ -35,15 +34,16 @@
         (set! stack (push elem stack))))
   stack)
 
-;; Old (start) of implementing run with cond. This is nice because there's not
-;; arbitrary code execution, but it makes adding functionality more work.
-;; I might continue to update this with "internal" functions as a "safe" option
-;; to go alongside the above "wild west" implementation.
+;; This was originally the initial implementation (roughly), but that
+;; implementation was moved below to `foo`. The current approach is somewhat
+;; nicer in the sense that (1) functions aren't restricted to binary operations,
+;; and (2) adding functions (or changing arity) only requires updating a hash,
+;; rather than implementing a whole new `cond` branch.
 (define (run_old prog ns)
   (define stack null)
   (define func-table
     (make-immutable-hash '([~ . (lambda (n) (- n))]
-                           [out . (lambda (o) (displayln o))]
+                           [out . displayln]
                            [++ . string-append])))
   (define arity-table
     (make-immutable-hash '([+ . 2]
@@ -55,60 +55,75 @@
                            [++ . 2]))) ;; string concatentation
   (define (do-func f args)
     (cond
+      ;; if elem is in `func-table`, it is a "language" function, rather than a
+      ;; "primitive" function, which just uses the racket function itself
+      ;; (e.g. +, 0, *)
       ([hash-has-key? func-table f]
-        (apply (eval (hash-ref func-table f) ns) args))
+       ;; language functions' definitions are defined as the function associated
+       ;; with the key in `func-table`
+       (apply (eval (hash-ref func-table f) ns) args))
+      ;; if elem is primitive (a racket function), we don't need the function
+      ;; defined in `func-table`. Note that this does not mean that arbitrary
+      ;; functions are allowed (e.g. `++` is defined as `string-append`, but one
+      ;; cannot call `string-append` in place of `++`).
       ([primitive? (eval f ns)]
-          (apply (eval f ns) args))
+       ;; simply apply the function to args (based on arity)
+       (apply (eval f ns) args))
       (else
        (error
         (format "ERROR (do-func): function not primitve or language: ~a" f)))))
-    
+  
   (for ([elem prog])
     (cond
-      ([or (hash-has-key? arity-table elem) (hash-has-key? func-table elem)]
-       (let* ([arity (hash-ref arity-table elem)]
-              [args (take stack arity)])
-         (set! stack (push (do-func elem args)))
-         (drop prog (add1 arity))))
-      ([or (number? elem) (string? elem)]
-       (set! stack (push elem stack)))
-      (else
+      ;; if elem is in arity-table, it is a function
+      ([hash-has-key? arity-table elem]
+       (let* ([arity (hash-ref arity-table elem)] ;; lookup arity in arity-table
+              [args (take stack arity)]) ;; take (arity) args from stack
+         (set! stack (push (do-func elem args))) ;; set stack to result of func
+         (drop prog (add1 arity)))) ;; drop (arity and func) from prog
+      ([or (number? elem) (string? elem)] ;; is literal (num, string)
+       (set! stack (push elem stack))) ;; push literal on stack
+      (else ;; otherwise, panic.
        (error (format "ERROR: Cannot read term: ~a" elem)))))
-  stack)
+  stack) ;; stack is result of program
 
+;; Old (start) of implementing run with cond. This is nice because there's not
+;; arbitrary code execution, but it makes adding functionality more work.
+;; I might continue to update this with "internal" functions as a "safe" option
+;; to go alongside the above "wild west" implementation.
 #;(define foo
-  (for ([elem prog])
-    (cond
-      ;;  Token = +
-      ([eq? elem '+]
-       (let ([num1 (peek stack)]
-             [num2 (peek (pop stack))])
-         (set! stack (push (+ num1 num2) (pop (pop stack))))))
-      
-      ;; Token = *
-      ([eq? elem '*]
-       (let ([num1 (peek stack)]
-             [num2 (peek (pop stack))])
-         (set! stack (push (* num1 num2) (pop (pop stack))))))
-      
-      ;; Token = -
-      ([eq? elem '-]
-       (let ([num1 (peek stack)]
-             [num2 (peek (pop stack))])
-         (set! stack (push (- num1 num2) (pop (pop stack))))))
-
-      ;; Token = /
-      ([eq? elem '/]
-       (let ([num1 (peek stack)]
-             [num2 (peek (pop stack))])
-         (set! stack (push (/ num1 num2) (pop (pop stack))))))
-
-      ([number? elem]
-       (set! stack (push elem stack)))
-      ;; Token is literal
-      (else
-       (error (format "ERROR: Cannot read term: ~a." elem)))))
-  stack)
+    (for ([elem prog])
+      (cond
+        ;;  Token = +
+        ([eq? elem '+]
+         (let ([num1 (peek stack)]
+               [num2 (peek (pop stack))])
+           (set! stack (push (+ num1 num2) (pop (pop stack))))))
+        
+        ;; Token = *
+        ([eq? elem '*]
+         (let ([num1 (peek stack)]
+               [num2 (peek (pop stack))])
+           (set! stack (push (* num1 num2) (pop (pop stack))))))
+        
+        ;; Token = -
+        ([eq? elem '-]
+         (let ([num1 (peek stack)]
+               [num2 (peek (pop stack))])
+           (set! stack (push (- num1 num2) (pop (pop stack))))))
+        
+        ;; Token = /
+        ([eq? elem '/]
+         (let ([num1 (peek stack)]
+               [num2 (peek (pop stack))])
+           (set! stack (push (/ num1 num2) (pop (pop stack))))))
+        
+        ([number? elem]
+         (set! stack (push elem stack)))
+        ;; Token is literal
+        (else
+         (error (format "ERROR: Cannot read term: ~a." elem)))))
+    stack)
 
 ;; REPL
 (define (start ns)
