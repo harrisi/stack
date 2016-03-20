@@ -44,7 +44,9 @@
   (define func-table
     (make-immutable-hash '([~ . (lambda (n) (- n))]
                            [out . displayln]
-                           [++ . string-append])))
+                           [++ . string-append]
+                           [in . read]
+                           [prompt . (lambda (o) (displayln o) (read))])))
   (define arity-table
     (make-immutable-hash '([+ . 2]
                            [* . 2]
@@ -52,7 +54,9 @@
                            [/ . 2]
                            [~ . 1] ;; unary negation
                            [out . 1] ;; print top elem of stack
-                           [++ . 2]))) ;; string concatentation
+                           [++ . 2] ;; string concatenation
+                           [in . 0] ;; read input
+                           [prompt . 1]))) ;; display str and get input
   (define (do-func f args)
     (cond
       ;; if elem is in `func-table`, it is a "language" function, rather than a
@@ -79,8 +83,9 @@
       ([hash-has-key? arity-table elem]
        (let* ([arity (hash-ref arity-table elem)] ;; lookup arity in arity-table
               [args (take stack arity)]) ;; take (arity) args from stack
-         (set! stack (push (do-func elem args))) ;; set stack to result of func
-         (drop prog (add1 arity)))) ;; drop (arity and func) from prog
+         (set! stack (drop stack arity)) ;; drop the args from the stack
+         (set! stack ;; set stack to result of func pushed onto the stack
+               (push (do-func elem args) stack)))) 
       ([or (number? elem) (string? elem)] ;; is literal (num, string)
        (set! stack (push elem stack))) ;; push literal on stack
       (else ;; otherwise, panic.
