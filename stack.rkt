@@ -56,7 +56,8 @@
                            [out . 1] ;; print top elem of stack
                            [++ . 2] ;; string concatenation
                            [in . 0] ;; read input
-                           [prompt . 1]))) ;; display str and get input
+                           [prompt . 1]
+                           [number->string . 1]))) ;; display str and get input
   (define (do-func f args)
     (cond
       ;; if elem is in `func-table`, it is a "language" function, rather than a
@@ -85,7 +86,9 @@
               [args (take stack arity)]) ;; take (arity) args from stack
          (set! stack (drop stack arity)) ;; drop the args from the stack
          (set! stack ;; set stack to result of func pushed onto the stack
-               (push (do-func elem args) stack)))) 
+               (push (do-func elem args) stack))
+         (when (void? (peek stack))
+           (set! stack (pop stack)))))
       ([or (number? elem) (string? elem)] ;; is literal (num, string)
        (set! stack (push elem stack))) ;; push literal on stack
       (else ;; otherwise, panic.
