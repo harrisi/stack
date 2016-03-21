@@ -1,3 +1,4 @@
+#!/usr/local/bin/racket
 #lang racket
 
 ;; Push elem onto stack (default value null).
@@ -156,4 +157,6 @@
 (module+ main
   (define-namespace-anchor anc)
   (define ns (namespace-anchor->namespace anc))
-  (start ns))
+  (if (file-exists? "ignore.stack")
+      (run_old (file->value "ignore.stack") ns)
+      (start ns)))
