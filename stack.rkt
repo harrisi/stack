@@ -78,6 +78,13 @@
       (else
        (error
         (format "ERROR (do-func): function not primitve or language: ~a" f)))))
+  (define (is-literal? e)
+    (define lits (list number?
+                       string?
+                       boolean?))
+    (ormap identity
+           (map (λ (f)
+                  (f e)) lits)))
   
   (for ([elem prog])
     (cond
@@ -90,7 +97,7 @@
                (push (do-func elem args) stack))
          (when (void? (peek stack))
            (set! stack (pop stack)))))
-      ([or (number? elem) (string? elem)] ;; is literal (num, string)
+      ([is-literal? elem]
        (set! stack (push elem stack))) ;; push literal on stack
       (else ;; otherwise, panic.
        (error (format "ERROR: Cannot read term: ~a" elem)))))
@@ -157,6 +164,8 @@
 (module+ main
   (define-namespace-anchor anc)
   (define ns (namespace-anchor->namespace anc))
-  (if (file-exists? "ignore.stack")
+  (define forcerepl #t)
+  (if (and (file-exists? "ignore.stack") (not forcerepl)) ;; forcerepl is a
+                                                          ;; silly hack. :(
       (run_old (file->value "ignore.stack") ns)
       (start ns)))
