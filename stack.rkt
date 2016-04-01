@@ -58,7 +58,9 @@
                            [++ . 2] ;; string concatenation
                            [in . 0] ;; read input
                            [prompt . 1]
-                           [number->string . 1]))) ;; display str and get input
+                           [number->string . 1] ;; display str and get input
+                           [not . 1] ;; boolean negation
+                           ))) 
   (define (do-func f args)
     (cond
       ;; if elem is in `func-table`, it is a "language" function, rather than a
